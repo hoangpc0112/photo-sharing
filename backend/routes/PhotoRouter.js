@@ -1,10 +1,53 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
+const multer = require("multer");
 const Photo = require("../db/photoModel");
 const User = require("../db/userModel");
 const router = express.Router();
+const path = require("path");
+const fs = require("fs");
+
+const JWT_SECRET = "your-secret-key-change-in-production";
+
+// Authentication middleware
+const requireAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user_id = decoded.user_id;
+    req.login_name = decoded.login_name;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+};
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, "../public/images");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage: storage });
 
 // GET /photosOfUser/:id - Return photos of a specific user with comments
-router.get("/user/:id", async (request, response) => {
+router.get("/user/:id", requireAuth, async (request, response) => {
   const userId = request.params.id;
   console.log(userId);
 
@@ -51,6 +94,68 @@ router.get("/user/:id", async (request, response) => {
   }
 });
 
-router.post("/", async (request, response) => {});
+// POST /commentsOfPhoto/:photo_id - Add a comment to a photo
+router.post(
+  "/commentsOfPhoto/:photo_id",
+  requireAuth,
+  async (request, response) => {
+    const photoId = request.params.photo_id;
+    const { comment } = request.body;
+
+    if (!comment || comment.trim() === "") {
+      return response.status(400).json({ error: "Comment cannot be empty" });
+    }
+
+    try {
+      const photo = await Photo.findById(photoId).exec();
+      if (!photo) {
+        return response.status(400).json({ error: "Photo not found" });
+      }
+
+      const newComment = {
+        comment: comment.trim(),
+        user_id: request.user_id,
+        date_time: new Date(),
+      };
+
+      photo.comments.push(newComment);
+      await photo.save();
+
+      response.status(200).json({ message: "Comment added successfully" });
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      response.status(400).json({ error: "Error adding comment" });
+    }
+  }
+);
+
+// POST /photos/new - Upload a new photo
+router.post(
+  "/new",
+  requireAuth,
+  upload.single("photo"),
+  async (request, response) => {
+    if (!request.file) {
+      return response.status(400).json({ error: "No file uploaded" });
+    }
+
+    try {
+      const newPhoto = new Photo({
+        file_name: request.file.filename,
+        user_id: request.user_id,
+        date_time: new Date(),
+        comments: [],
+      });
+
+      await newPhoto.save();
+      response
+        .status(200)
+        .json({ message: "Photo uploaded successfully", photo: newPhoto });
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      response.status(400).json({ error: "Error uploading photo" });
+    }
+  }
+);
 
 module.exports = router;

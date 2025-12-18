@@ -4,11 +4,20 @@ const cors = require("cors");
 const dbConnect = require("./db/dbConnect");
 const UserRouter = require("./routes/UserRouter");
 const PhotoRouter = require("./routes/PhotoRouter");
+const AdminRouter = require("./routes/AdminRouter");
 
 dbConnect();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(express.static("public"));
+
+app.use("/api/admin", AdminRouter);
 app.use("/api/user", UserRouter);
 app.use("/api/photo", PhotoRouter);
 

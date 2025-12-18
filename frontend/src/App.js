@@ -1,34 +1,149 @@
 import "./App.css";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Grid, Paper } from "@mui/material";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from "react-router-dom";
 
 import TopBar from "./components/TopBar";
 import UserDetail from "./components/UserDetail";
 import UserList from "./components/UserList";
 import UserPhotos from "./components/UserPhotos";
+import LoginRegister from "./components/LoginRegister";
 
 const App = (props) => {
+  const [user, setUser] = useState(null);
+  const [photoUploadTrigger, setPhotoUploadTrigger] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  // Check for existing token on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Verify token by fetching user list (any authenticated endpoint)
+      fetch("http://localhost:8081/api/user/list", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((response) => {
+          if (response.status === 401) {
+            // Token invalid
+            localStorage.removeItem("token");
+            setLoading(false);
+          } else {
+            // Token valid, decode user info from token
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            setUser({
+              _id: payload.user_id,
+              login_name: payload.login_name,
+            });
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem("token");
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+  };
+
+  const handlePhotoUploaded = () => {
+    setPhotoUploadTrigger((prev) => prev + 1);
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <Router>
       <div>
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <TopBar />
+            <TopBar
+              user={user}
+              onLogout={handleLogout}
+              onPhotoUploaded={handlePhotoUploaded}
+            />
           </Grid>
           <div className="main-topbar-buffer" />
           <Grid item sm={3}>
             <Paper className="main-grid-item">
-              <UserList />
+              {user ? <UserList /> : null}
             </Paper>
           </Grid>
           <Grid item sm={9}>
             <Paper className="main-grid-item">
               <Routes>
-                <Route path="/users/:userId" element={<UserDetail />} />
-                <Route path="/photos/:userId" element={<UserPhotos />} />
-                <Route path="/users" element={<UserList />} />
+                <Route
+                  path="/login-register"
+                  element={
+                    user ? (
+                      <Navigate to={`/users/${user._id}`} replace />
+                    ) : (
+                      <LoginRegister onLogin={handleLogin} />
+                    )
+                  }
+                />
+                <Route
+                  path="/users/:userId"
+                  element={
+                    user ? (
+                      <UserDetail />
+                    ) : (
+                      <Navigate to="/login-register" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/photos/:userId"
+                  element={
+                    user ? (
+                      <UserPhotos photoUploadTrigger={photoUploadTrigger} />
+                    ) : (
+                      <Navigate to="/login-register" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    user ? (
+                      <UserList />
+                    ) : (
+                      <Navigate to="/login-register" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/"
+                  element={
+                    user ? (
+                      <Navigate to={`/users/${user._id}`} replace />
+                    ) : (
+                      <Navigate to="/login-register" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="*"
+                  element={<Navigate to="/login-register" replace />}
+                />
               </Routes>
             </Paper>
           </Grid>

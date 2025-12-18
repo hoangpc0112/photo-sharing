@@ -15,6 +15,8 @@ async function dbLoad() {
     console.log("Successfully connected to MongoDB Atlas!");
   } catch (error) {
     console.log("Unable connecting to MongoDB Atlas!");
+    console.error(error);
+    process.exit(1);
   }
 
   await User.deleteMany({});
@@ -30,6 +32,8 @@ async function dbLoad() {
       location: user.location,
       description: user.description,
       occupation: user.occupation,
+      login_name: user.first_name.toLowerCase(),
+      password: "1",
     });
     try {
       await userObj.save();

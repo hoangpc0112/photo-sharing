@@ -1,0 +1,11 @@
+.login-register-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.login-section,
+.register-section {
+  padding: 30px;
+  margin-bottom: 20px;
+}

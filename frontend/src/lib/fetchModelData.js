@@ -5,7 +5,21 @@
  *
  */
 async function fetchModel(url) {
-  const models = await fetch("http://localhost:8081/api" + url);
+  const token = localStorage.getItem("token");
+
+  const models = await fetch("http://localhost:8081/api" + url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (models.status === 401) {
+    // Remove invalid token and redirect to login
+    localStorage.removeItem("token");
+    window.location.href = "/login-register";
+    return null;
+  }
+
   const data = await models.json();
   return data;
 }
