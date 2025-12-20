@@ -82,13 +82,26 @@ const App = (props) => {
             />
           </Grid>
           <div className="main-topbar-buffer" />
-          <Grid item sm={3}>
-            <Paper className="main-grid-item">
-              {user ? <UserList /> : null}
-            </Paper>
-          </Grid>
-          <Grid item sm={9}>
-            <Paper className="main-grid-item">
+          {user && (
+            <Grid item sm={3}>
+              <Paper className="main-grid-item">
+                <UserList />
+              </Paper>
+            </Grid>
+          )}
+          <Grid item sm={user ? 9 : 12}>
+            <Paper
+              className="main-grid-item"
+              style={
+                !user
+                  ? {
+                      border: "none",
+                      boxShadow: "none",
+                      background: "transparent",
+                    }
+                  : {}
+              }
+            >
               <Routes>
                 <Route
                   path="/login-register"

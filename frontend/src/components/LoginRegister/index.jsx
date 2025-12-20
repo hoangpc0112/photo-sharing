@@ -127,7 +127,11 @@ function LoginRegister({ onLogin }) {
   return (
     <Box className="login-register-container">
       <Paper className="login-section" elevation={3}>
-        <Typography variant="h5" gutterBottom>
+        <Typography
+          variant="h5"
+          gutterBottom
+          sx={{ fontWeight: "bold", mb: 3 }}
+        >
           Login
         </Typography>
         <form onSubmit={handleLogin}>
@@ -158,7 +162,7 @@ function LoginRegister({ onLogin }) {
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mt: 3, py: 1.5 }}
           >
             Login
           </Button>
@@ -168,7 +172,11 @@ function LoginRegister({ onLogin }) {
       <Divider sx={{ my: 4 }} />
 
       <Paper className="register-section" elevation={3}>
-        <Typography variant="h5" gutterBottom>
+        <Typography
+          variant="h5"
+          gutterBottom
+          sx={{ fontWeight: "bold", mb: 3 }}
+        >
           Register New Account
         </Typography>
         <form onSubmit={handleRegister}>
@@ -260,7 +268,7 @@ function LoginRegister({ onLogin }) {
             variant="contained"
             color="secondary"
             fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mt: 3, py: 1.5 }}
           >
             Register Me
           </Button>
