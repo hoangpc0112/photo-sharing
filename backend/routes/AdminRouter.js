@@ -2,8 +2,9 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../db/userModel");
 const router = express.Router();
+require("dotenv").config();
 
-const JWT_SECRET = "your-secret-key-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /admin/login - Login a user
 router.post("/login", async (request, response) => {
@@ -22,12 +23,10 @@ router.post("/login", async (request, response) => {
       return response.status(400).json({ error: "Invalid login credentials" });
     }
 
-    // Check password (in production, use bcrypt for hashed passwords)
     if (user.password !== password) {
       return response.status(400).json({ error: "Invalid login credentials" });
     }
 
-    // Create JWT token
     const token = jwt.sign(
       {
         user_id: user._id,
@@ -36,8 +35,6 @@ router.post("/login", async (request, response) => {
       JWT_SECRET,
       { expiresIn: "24h" }
     );
-
-    // Return user info and token (excluding password)
     const userResponse = {
       _id: user._id,
       first_name: user.first_name,
@@ -55,7 +52,6 @@ router.post("/login", async (request, response) => {
 
 // POST /admin/logout - Logout a user
 router.post("/logout", async (request, response) => {
-  // With JWT, logout is handled on client side by removing token
   response.status(200).json({ message: "Logout successful" });
 });
 

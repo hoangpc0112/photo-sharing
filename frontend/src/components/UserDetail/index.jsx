@@ -29,6 +29,12 @@ function UserDetail() {
       <Typography variant="h4">
         {user.first_name} {user.last_name}
       </Typography>
+      <Typography variant="body2" color="textSecondary" gutterBottom>
+        {user.photo_count || 0} photos •{" "}
+        <Link to={`/commentsOf/${user._id}`}>
+          {user.comment_count || 0} comments
+        </Link>
+      </Typography>
       <Typography variant="body1">
         <strong>Location:</strong> {user.location}
       </Typography>

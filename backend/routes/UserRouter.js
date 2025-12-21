@@ -2,8 +2,9 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../db/userModel");
 const router = express.Router();
+require("dotenv").config();
 
-const JWT_SECRET = "your-secret-key-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
@@ -28,8 +29,35 @@ const requireAuth = (req, res, next) => {
 // GET /user/list - Return list of users for navigation sidebar
 router.get("/list", requireAuth, async (request, response) => {
   try {
+    const Photo = require("../db/photoModel");
     const users = await User.find({}).select("_id first_name last_name").exec();
-    response.status(200).json(users);
+
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const photos = await Photo.find({ user_id: user._id }).exec();
+        const photoCount = photos.length;
+
+        let commentCount = 0;
+        const allPhotos = await Photo.find({}).exec();
+        allPhotos.forEach((photo) => {
+          photo.comments.forEach((comment) => {
+            if (comment.user_id.toString() === user._id.toString()) {
+              commentCount++;
+            }
+          });
+        });
+
+        return {
+          _id: user._id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          photo_count: photoCount,
+          comment_count: commentCount,
+        };
+      })
+    );
+
+    response.status(200).json(usersWithStats);
   } catch (error) {
     console.error("Error fetching user list:", error);
     response.status(500).json({ error: "Internal server error" });
@@ -39,9 +67,9 @@ router.get("/list", requireAuth, async (request, response) => {
 // GET /user/:id - Return detailed information of a specific user
 router.get("/:id", requireAuth, async (request, response) => {
   const userId = request.params.id;
-  // console.log(userId);
 
   try {
+    const Photo = require("../db/photoModel");
     const user = await User.findById(userId).select("-password");
 
     if (!user) {
@@ -49,7 +77,26 @@ router.get("/:id", requireAuth, async (request, response) => {
       return;
     }
 
-    response.status(200).json(user);
+    const photos = await Photo.find({ user_id: userId }).exec();
+    const photoCount = photos.length;
+
+    let commentCount = 0;
+    const allPhotos = await Photo.find({}).exec();
+    allPhotos.forEach((photo) => {
+      photo.comments.forEach((comment) => {
+        if (comment.user_id.toString() === userId) {
+          commentCount++;
+        }
+      });
+    });
+
+    const userWithStats = {
+      ...user.toObject(),
+      photo_count: photoCount,
+      comment_count: commentCount,
+    };
+
+    response.status(200).json(userWithStats);
   } catch (error) {
     console.error("Error fetching user:", error);
     response.status(400).json({ error: "Invalid user ID" });

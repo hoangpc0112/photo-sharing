@@ -6,10 +6,11 @@ const User = require("../db/userModel");
 const router = express.Router();
 const path = require("path");
 const fs = require("fs");
+const userModel = require("../db/userModel");
+require("dotenv").config();
 
-const JWT_SECRET = "your-secret-key-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
 
-// Authentication middleware
 const requireAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -17,7 +18,7 @@ const requireAuth = (req, res, next) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+  const token = authHeader.substring(7);
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -49,7 +50,6 @@ const upload = multer({ storage: storage });
 // GET /photosOfUser/:id - Return photos of a specific user with comments
 router.get("/user/:id", requireAuth, async (request, response) => {
   const userId = request.params.id;
-  console.log(userId);
 
   try {
     const user = await User.findById(userId).exec();
@@ -157,5 +157,123 @@ router.post(
     }
   }
 );
+
+router.put(
+  "/commentsOfPhoto/:photo_id/:comment_id",
+  requireAuth,
+  async (request, response) => {
+    const { photo_id, comment_id } = request.params;
+    const { comment } = request.body;
+
+    if (!comment || comment.trim() === "") {
+      return response.status(400).json({ error: "Comment cannot be empty" });
+    }
+
+    try {
+      const photo = await Photo.findById(photo_id).exec();
+      if (!photo) {
+        return response.status(400).json({ error: "Photo not found" });
+      }
+
+      const commentToUpdate = photo.comments.id(comment_id);
+      if (!commentToUpdate) {
+        return response.status(400).json({ error: "Comment not found" });
+      }
+
+      if (commentToUpdate.user_id.toString() !== request.user_id) {
+        return response.status(403).json({ error: "Forbidden" });
+      }
+
+      commentToUpdate.comment = comment.trim();
+      await photo.save();
+
+      response.status(200).json({ message: "Comment updated successfully" });
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      response.status(400).json({ error: "Error updating comment" });
+    }
+  }
+);
+
+router.delete(
+  "/commentsOfPhoto/:photo_id/:comment_id",
+  requireAuth,
+  async (request, response) => {
+    const { photo_id, comment_id } = request.params;
+
+    try {
+      const photo = await Photo.findById(photo_id).exec();
+      if (!photo) {
+        return response.status(400).json({ error: "Photo not found" });
+      }
+
+      const commentToDelete = photo.comments.id(comment_id);
+      if (!commentToDelete) {
+        return response.status(400).json({ error: "Comment not found" });
+      }
+
+      if (commentToDelete.user_id.toString() !== request.user_id) {
+        return response.status(403).json({ error: "Forbidden" });
+      }
+
+      photo.comments.pull(comment_id);
+      await photo.save();
+
+      response.status(200).json({ message: "Comment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      response.status(400).json({ error: "Error deleting comment" });
+    }
+  }
+);
+
+router.delete("/:photo_id", requireAuth, async (request, response) => {
+  const { photo_id } = request.params;
+
+  try {
+    const photo = await Photo.findById(photo_id).exec();
+    if (!photo) {
+      return response.status(400).json({ error: "Photo not found" });
+    }
+
+    if (photo.user_id.toString() !== request.user_id) {
+      return response.status(403).json({ error: "Forbidden" });
+    }
+
+    const filePath = path.join(__dirname, "../public/images", photo.file_name);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    await Photo.findByIdAndDelete(photo_id);
+
+    response.status(200).json({ message: "Photo deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting photo:", error);
+    response.status(400).json({ error: "Error deleting photo" });
+  }
+});
+
+router.get("/commentsOf/:userId", requireAuth, async (request, response) => {
+  const { userId } = request.params;
+
+  try {
+    const user = await userModel.findById(userId).exec();
+    if (!user) {
+      return response.status(400).json({ error: "User not found" });
+    }
+
+    const photos = await Photo.find({ "comments.user_id": userId }).exec();
+    comments = [];
+
+    for (const photo of photos) {
+      comments.push(...photo.comments);
+    }
+
+    response.json(comments);
+  } catch (error) {
+    console.error("Error", error);
+  }
+});
 
 module.exports = router;

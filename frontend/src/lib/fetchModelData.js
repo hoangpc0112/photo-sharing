@@ -14,7 +14,6 @@ async function fetchModel(url) {
   });
 
   if (models.status === 401) {
-    // Remove invalid token and redirect to login
     localStorage.removeItem("token");
     window.location.href = "/login-register";
     return null;

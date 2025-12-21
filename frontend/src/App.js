@@ -14,17 +14,16 @@ import UserDetail from "./components/UserDetail";
 import UserList from "./components/UserList";
 import UserPhotos from "./components/UserPhotos";
 import LoginRegister from "./components/LoginRegister";
+import UserComments from "./components/UserComments";
 
 const App = (props) => {
   const [user, setUser] = useState(null);
   const [photoUploadTrigger, setPhotoUploadTrigger] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing token on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      // Verify token by fetching user list (any authenticated endpoint)
       fetch("http://localhost:8081/api/user/list", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -32,11 +31,9 @@ const App = (props) => {
       })
         .then((response) => {
           if (response.status === 401) {
-            // Token invalid
             localStorage.removeItem("token");
             setLoading(false);
           } else {
-            // Token valid, decode user info from token
             const payload = JSON.parse(atob(token.split(".")[1]));
             setUser({
               _id: payload.user_id,
@@ -148,6 +145,16 @@ const App = (props) => {
                   element={
                     user ? (
                       <Navigate to={`/users/${user._id}`} replace />
+                    ) : (
+                      <Navigate to="/login-register" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/commentsOf/:userId"
+                  element={
+                    user ? (
+                      <UserComments />
                     ) : (
                       <Navigate to="/login-register" replace />
                     )

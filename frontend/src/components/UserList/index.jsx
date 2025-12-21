@@ -24,7 +24,12 @@ function UserList() {
         {users.map((item) => (
           <React.Fragment key={item._id}>
             <ListItem component={Link} to={`/users/${item._id}`}>
-              <ListItemText primary={`${item.first_name} ${item.last_name}`} />
+              <ListItemText
+                primary={`${item.first_name} ${item.last_name}`}
+                secondary={`${item.photo_count || 0} photos, ${
+                  item.comment_count || 0
+                } comments`}
+              />
             </ListItem>
             <Divider />
           </React.Fragment>

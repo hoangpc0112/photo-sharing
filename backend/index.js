@@ -5,6 +5,9 @@ const dbConnect = require("./db/dbConnect");
 const UserRouter = require("./routes/UserRouter");
 const PhotoRouter = require("./routes/PhotoRouter");
 const AdminRouter = require("./routes/AdminRouter");
+require("dotenv").config();
+
+const PORT = process.env.PORT || 8081;
 
 dbConnect();
 
@@ -25,6 +28,6 @@ app.get("/", (request, response) => {
   response.send({ message: "Hello from photo-sharing app API!" });
 });
 
-app.listen(8081, () => {
-  console.log("server listening on port 8081");
+app.listen(PORT, () => {
+  console.log(`server listening on port ${PORT}`);
 });
